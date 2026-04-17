@@ -13,6 +13,7 @@ import pickle as pkl
 from robodog_gym.envs import *
 from robodog_gym.envs.base.legged_robot_config import Cfg
 from robodog_gym.envs.robodog.go1_config import config_go1
+from robodog_gym.envs.robodog.mybot_v2_1_config import config_mybot_v2_1
 from robodog_gym.envs.robodog.velocity_tracking import VelocityTrackingEasyEnv
 
 from params_proto.proto import Meta

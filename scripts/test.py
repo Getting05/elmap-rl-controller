@@ -11,6 +11,7 @@ from robodog_gym.envs.robodog.go1_config import config_go1
 from robodog_gym.envs.robodog.a1_config import config_a1
 from robodog_gym.envs.robodog.a1_backpack_config import config_a1_backpack
 from robodog_gym.envs.robodog.go1_backpack_config import config_go1_backpack
+from robodog_gym.envs.robodog.mybot_v2_1_config import config_mybot_v2_1
 from robodog_gym.envs.robodog.velocity_tracking import VelocityTrackingEasyEnv
 
 
