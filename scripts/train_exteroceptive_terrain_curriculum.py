@@ -5,7 +5,7 @@
 # - Full WTW dynamic randomization (friction, mass, pushes, gravity, restitution, motor strength, offset and lag)
 
 
-def train_go1(headless=True):
+def train_go1(headless=True, robot="go1_backpack"):
 
     import isaacgym
     assert isaacgym
@@ -25,7 +25,12 @@ def train_go1(headless=True):
     from robodog_gym.envs.wrappers.history_wrapper import HistoryWrapper
 
 
-    config_go1_backpack(Cfg)
+    if robot == "go1_backpack":
+      config_go1_backpack(Cfg)
+    elif robot == "mybot_v2_1":
+      config_mybot_v2_1(Cfg)
+    else:
+      raise ValueError(f"Unsupported robot: {robot}")
 
     # Cfg.cfg_ppo.runner.wandb_logging = False
     # Cfg.env.num_envs = 20
@@ -34,7 +39,6 @@ def train_go1(headless=True):
     # # Cfg.terrain.num_rows = 3
     # # Cfg.terrain.center_span = 1
     debug_viz = False
-    headless = True
     # Cfg.cfg_ppo.runner.save_video_interval = 250
     # Cfg.env.episode_length_s = 5
 
@@ -553,13 +557,31 @@ def train_go1(headless=True):
     runner.learn(num_learning_iterations=100000, init_at_random_ep_len=True, eval_freq=50)
 
 
+def train_mybot_v2_1(headless=True):
+    return train_go1(headless=headless, robot="mybot_v2_1")
+
+
 if __name__ == '__main__':
+    import argparse
     import os
     from pathlib import Path
     from ml_logger import logger
     from robodog_gym import MINI_GYM_ROOT_DIR
 
-    logger.configure(logger.utcnow(f'rsl_exteroceptive_curriculum_debug/%Y-%m-%d_%H-%M-%S.%f'),
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--robot",
+        type=str,
+        default="go1_backpack",
+        choices=["go1_backpack", "mybot_v2_1"],
+        help="robot config to train",
+    )
+    parser.add_argument("--headless", dest="headless", action="store_true")
+    parser.add_argument("--no-headless", dest="headless", action="store_false")
+    parser.set_defaults(headless=True)
+    args = parser.parse_args()
+
+    logger.configure(logger.utcnow(f'rsl_exteroceptive_curriculum_debug_{args.robot}/%Y-%m-%d_%H-%M-%S.%f'),
                      root=Path(f"{MINI_GYM_ROOT_DIR}/runs").resolve(), )
     print("Loggind directory:", os.path.join(logger.root,logger.prefix))
     logger.log_text("""
@@ -619,5 +641,8 @@ if __name__ == '__main__':
                   xKey: iterations
                 """, filename=".charts.yml", dedent=True)
 
-    # to see the environment rendering, set headless=False
-    train_go1(headless=True)
+    # to see the environment rendering, pass --no-headless
+    if args.robot == "mybot_v2_1":
+        train_mybot_v2_1(headless=args.headless)
+    else:
+        train_go1(headless=args.headless, robot=args.robot)

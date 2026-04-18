@@ -5,7 +5,7 @@
 # - Full WTW dynamic randomization (friction, mass, pushes, gravity, restitution, motor strength, offset and lag)
 
 
-def train_go1(headless=True):
+def train_go1(headless=True, robot="go1_backpack"):
 
     import isaacgym
     assert isaacgym
@@ -25,7 +25,12 @@ def train_go1(headless=True):
     from robodog_gym.envs.wrappers.history_wrapper import HistoryWrapper
 
 
-    config_go1_backpack(Cfg)
+    if robot == "go1_backpack":
+      config_go1_backpack(Cfg)
+    elif robot == "mybot_v2_1":
+      config_mybot_v2_1(Cfg) # 会被覆盖
+    else:
+      raise ValueError(f"Unsupported robot: {robot}")
 
     # Cfg.cfg_ppo.runner.wandb_logging = False
     # Cfg.env.num_envs = 4
@@ -66,7 +71,7 @@ def train_go1(headless=True):
     Cfg.domain_rand.randomize_lag_timesteps = True # wtw true
 
     Cfg.domain_rand.randomize_friction = True
-    Cfg.domain_rand.friction_range = [0.0, 4.0]
+    Cfg.domain_rand.friction_range = [0.5, 2.0] #mybotconfig缩小范围
     Cfg.domain_rand.randomize_restitution = True  # wtw true
     Cfg.domain_rand.restitution_range = [0.0, 0.4]
     Cfg.domain_rand.randomize_base_mass = True
@@ -86,13 +91,13 @@ def train_go1(headless=True):
 
 
     # gravity changes and pushes
-    Cfg.domain_rand.randomize_gravity = True # wtw true
+    Cfg.domain_rand.randomize_gravity = False # wtw true #mybotconfig先不用
     Cfg.domain_rand.gravity_range = [-1.0, 1.0]
     Cfg.domain_rand.gravity_rand_interval_s = 8.0
     Cfg.domain_rand.gravity_impulse_duration = 0.99
 
     # pushes as in rsl
-    Cfg.domain_rand.push_robots = True
+    Cfg.domain_rand.push_robots = False #mybotconfig先不用
     Cfg.domain_rand.max_push_vel_xy = 1.0
     Cfg.domain_rand.push_interval_s = 15.0
 
@@ -309,7 +314,7 @@ def train_go1(headless=True):
 
     #negative rewards
     Cfg.reward_scales.base_height = -5 #-10
-    Cfg.rewards.base_height_target = 0.30
+    Cfg.rewards.base_height_target = 0.36
     Cfg.reward_scales.orientation = -2.0 #-4.0
 
     # go1 urdf weight no backpack: 11.308932. Backpack weight: 3.211. Increase by 28%
@@ -470,13 +475,31 @@ def train_go1(headless=True):
     runner.learn(num_learning_iterations=100000, init_at_random_ep_len=True, eval_freq=50)
 
 
+def train_mybot_v2_1(headless=True):
+    return train_go1(headless=headless, robot="mybot_v2_1")
+
+
 if __name__ == '__main__':
+    import argparse
     import os
     from pathlib import Path
     from ml_logger import logger
     from robodog_gym import MINI_GYM_ROOT_DIR
 
-    logger.configure(logger.utcnow(f'rsl_exteroceptive_simple/%Y-%m-%d_%H-%M-%S.%f'),
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+      "--robot",
+      type=str,
+      default="go1_backpack",
+      choices=["go1_backpack", "mybot_v2_1"],
+      help="robot config to train",
+    )
+    parser.add_argument("--headless", dest="headless", action="store_true")
+    parser.add_argument("--no-headless", dest="headless", action="store_false")
+    parser.set_defaults(headless=True)
+    args = parser.parse_args()
+
+    logger.configure(logger.utcnow(f'rsl_exteroceptive_simple_{args.robot}/%Y-%m-%d_%H-%M-%S.%f'),
                      root=Path(f"{MINI_GYM_ROOT_DIR}/runs").resolve(), )
     print("Loggind directory:", os.path.join(logger.root,logger.prefix))
     logger.log_text("""
@@ -536,5 +559,8 @@ if __name__ == '__main__':
                   xKey: iterations
                 """, filename=".charts.yml", dedent=True)
 
-    # to see the environment rendering, set headless=False
-    train_go1(headless=True)
+    # to see the environment rendering, pass --no-headless
+    if args.robot == "mybot_v2_1":
+      train_mybot_v2_1(headless=args.headless)
+    else:
+      train_go1(headless=args.headless, robot=args.robot)

@@ -1,3 +1,5 @@
+#python play_teleop.py --robot mybot_v2_1 --label rsl_exteroceptive_simple_mybot_v2_1/2026-04-17_13-05-48.192465 --iteration 4000 --no-headless 
+
 import isaacgym
 
 assert isaacgym
@@ -115,7 +117,7 @@ def load_config(cfg_dict,Cfg_class):
 
     return Cfg_class
 
-def load_env(label,iteration=-1, headless=False):
+def load_env(label, iteration=-1, headless=False, robot="go1_backpack"):
     # if label does not specify the exact run time, take the most recent
     logdir = f"../runs/{label}"
     if not os.path.exists(os.path.join(f"../runs/{label}", "parameters.pkl")):
@@ -138,8 +140,13 @@ def load_env(label,iteration=-1, headless=False):
     torch.manual_seed(45)
 
 
-    
-    Cfg.asset.file = '{MINI_GYM_ROOT_DIR}/resources/robots/go1_backpack_v3/urdf/go1_backpack.urdf'
+    # Select robot asset for visualization
+    if robot == "go1_backpack":
+        Cfg.asset.file = '{MINI_GYM_ROOT_DIR}/resources/robots/go1_backpack_v3/urdf/go1_backpack.urdf'
+    elif robot == "mybot_v2_1":
+        Cfg.asset.file = '{MINI_GYM_ROOT_DIR}/resources/robots/mybot_v2_1/urdf/mybot_v2_1.urdf'
+    else:
+        raise ValueError(f"Unsupported robot: {robot}")
 
 
 
@@ -406,7 +413,7 @@ class RobotController:
 
     
 
-def play_go1(headless=True):
+def play_go1(headless=True, robot="go1_backpack", label=None, iteration=-1):
     from ml_logger import logger
 
     from pathlib import Path
@@ -417,8 +424,8 @@ def play_go1(headless=True):
 
 
     # policy run
-    label = "exteroceptive_robust_icra_proposed/2024-08-25_01-25-03.910595"
-    iteration =  60000
+    if label is None:
+        label = "exteroceptive_robust_icra_proposed/2024-08-25_01-25-03.910595"
    
 
     # Create an instance of the RobotController
@@ -434,7 +441,7 @@ def play_go1(headless=True):
 
 
 
-    env, policy = load_env(label,iteration, headless=headless)
+    env, policy = load_env(label, iteration, headless=headless, robot=robot)
     
 
     num_eval_steps = 1000000
@@ -485,5 +492,36 @@ def play_go1(headless=True):
 
 
 if __name__ == '__main__':
-    # to see the environment rendering, set headless=False
-    play_go1(headless=False)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--robot",
+        type=str,
+        default="go1_backpack",
+        choices=["go1_backpack", "mybot_v2_1"],
+        help="robot config to visualize",
+    )
+    parser.add_argument(
+        "--label",
+        type=str,
+        default="exteroceptive_robust_icra_proposed/2024-08-25_01-25-03.910595",
+        help="run label under ../runs",
+    )
+    parser.add_argument(
+        "--iteration",
+        type=int,
+        default=-1,
+        help="checkpoint iteration, -1 means last",
+    )
+    parser.add_argument("--headless", dest="headless", action="store_true")
+    parser.add_argument("--no-headless", dest="headless", action="store_false")
+    parser.set_defaults(headless=False)
+    args = parser.parse_args()
+
+    play_go1(
+        headless=args.headless,
+        robot=args.robot,
+        label=args.label,
+        iteration=args.iteration,
+    )
