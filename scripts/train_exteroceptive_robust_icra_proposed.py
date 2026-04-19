@@ -32,6 +32,8 @@ def train_go1(headless=True, robot="go1_backpack"):
     else:
       raise ValueError(f"Unsupported robot: {robot}")
 
+    is_mybot = robot == "mybot_v2_1"
+
     # Cfg.cfg_ppo.runner.wandb_logging = False
     # Cfg.env.num_envs = 4
     # Cfg.terrain.num_cols = 3
@@ -48,17 +50,17 @@ def train_go1(headless=True, robot="go1_backpack"):
     # Cfg.curriculum_thresholds.tracking_contacts_shaped_force = 0.90
 
     # asset setup
-    Cfg.asset.self_collisions = 1  # 1 to disable, 0 to enable...bitwise filter. This has also effect for terminal collisions!
+    Cfg.asset.self_collisions = 0 if is_mybot else 1  # 1 to disable, 0 to enable...bitwise filter
 
     #-----------------------
     # control
     #-----------------------
 
     Cfg.control.control_type = "P" # actuator control type
-    Cfg.control.stiffness = {'joint': 25.}  # [N*m/rad]
-    Cfg.control.damping = {'joint': 0.5}  # [N*m*s/rad]
+    # Cfg.control.stiffness = {'joint': 25. if is_mybot else 25.}  # [N*m/rad]
+    # Cfg.control.damping = {'joint': 0.5}  # [N*m*s/rad]
     Cfg.control.action_scale = 0.25 #0.25
-    Cfg.control.hip_scale_reduction = 1.0 # consistent with rsl
+    Cfg.control.hip_scale_reduction = 1.0 if is_mybot else 1.0
 
     #-----------------------
     # domain randomization
@@ -71,11 +73,11 @@ def train_go1(headless=True, robot="go1_backpack"):
     Cfg.domain_rand.randomize_lag_timesteps = True # wtw true
 
     Cfg.domain_rand.randomize_friction = True
-    Cfg.domain_rand.friction_range = [0.5, 2.0] #mybotconfig缩小范围
+    Cfg.domain_rand.friction_range = [0.05, 2.5] if is_mybot else [0.5, 4.5]
     Cfg.domain_rand.randomize_restitution = True  # wtw true
     Cfg.domain_rand.restitution_range = [0.0, 0.4]
     Cfg.domain_rand.randomize_base_mass = True
-    Cfg.domain_rand.added_mass_range = [-2.0, 2.0]
+    Cfg.domain_rand.added_mass_range = [-1.0, 3.0] if is_mybot else [-1.0, 3.0]
     Cfg.domain_rand.randomize_com_displacement = False
     Cfg.domain_rand.com_displacement_range = [-0.15, 0.15]
     Cfg.domain_rand.randomize_ground_friction = False 
@@ -314,7 +316,7 @@ def train_go1(headless=True, robot="go1_backpack"):
 
     #negative rewards
     Cfg.reward_scales.base_height = -5 #-10
-    Cfg.rewards.base_height_target = 0.36
+    Cfg.rewards.base_height_target = 0.33 if is_mybot else 0.30
     Cfg.reward_scales.orientation = -2.0 #-4.0
 
     # go1 urdf weight no backpack: 11.308932. Backpack weight: 3.211. Increase by 28%

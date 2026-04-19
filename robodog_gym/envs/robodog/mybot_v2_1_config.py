@@ -16,8 +16,8 @@ def config_mybot_v2_1(Cnfg: Union[Cfg, Meta]):
         'RR_hip_joint': -0.1,  # [rad]
 
         'FL_thigh_joint': 0.8,  # [rad]
-        'RL_thigh_joint': 0.8,  # [rad]
-        'FR_thigh_joint': 1.0,  # [rad]
+        'RL_thigh_joint': 1.0,  # [rad]
+        'FR_thigh_joint': 0.8,  # [rad]
         'RR_thigh_joint': 1.0,  # [rad]
 
         'FL_calf_joint': -1.5,  # [rad]
@@ -28,11 +28,19 @@ def config_mybot_v2_1(Cnfg: Union[Cfg, Meta]):
 
     _ = Cnfg.control
     _.control_type = 'P'
-    _.stiffness = {'joint': 20.}  # [N*m/rad]
-    _.damping = {'joint': 0.5}  # [N*m*s/rad]
+    _.stiffness = {
+            'FL_hip': 40.0, 'FR_hip': 40.0, 'RL_hip': 40.0, 'RR_hip': 40.0,
+            'FL_thigh': 40.0, 'FR_thigh': 40.0, 'RL_thigh': 40.0, 'RR_thigh': 40.0,
+            'FL_calf': 80.0, 'FR_calf': 80.0, 'RL_calf': 80.0, 'RR_calf': 80.0,
+        }  # [N*m/rad]
+    _.damping = {
+            'FL_hip': 1.0, 'FR_hip': 1.0, 'RL_hip': 1.0, 'RR_hip': 1.0,
+            'FL_thigh': 1.0, 'FR_thigh': 1.0, 'RL_thigh': 1.0, 'RR_thigh': 1.0,
+            'FL_calf': 2.0, 'FR_calf': 2.0, 'RL_calf': 2.0, 'RR_calf': 2.0,
+        }      # [N*m*s/rad]
     # action scale: target angle = actionScale * action + defaultAngle
     _.action_scale = 0.25
-    _.hip_scale_reduction = 0.5
+    _.hip_scale_reduction = 1.0
     # decimation: Number of control action updates @ sim DT per policy DT
     _.decimation = 4
 
@@ -40,10 +48,15 @@ def config_mybot_v2_1(Cnfg: Union[Cfg, Meta]):
     _.file = '{MINI_GYM_ROOT_DIR}/resources/robots/mybot_v2_1/urdf/mybot_v2_1.urdf'
     _.foot_name = "foot"
     _.penalize_contacts_on = ["thigh", "calf"]
-    _.terminate_after_contacts_on = ["base"]
+    _.terminate_after_contacts_on = ["body"]  # mybot root link is named "body" in URDF
     _.self_collisions = 0  # 1 to disable, 0 to enable...bitwise filter
     _.flip_visual_attachments = False
     _.fix_base_link = False
+    _.armature = {
+            'FL_hip': 0.01, 'FR_hip': 0.01, 'RL_hip': 0.01, 'RR_hip': 0.01,
+            'FL_thigh': 0.01, 'FR_thigh': 0.01, 'RL_thigh': 0.01, 'RR_thigh': 0.01,
+            'FL_calf': 0.0544, 'FR_calf': 0.0544, 'RL_calf': 0.0544, 'RR_calf': 0.0544,
+        }
 
     _ = Cnfg.rewards
     _.soft_dof_pos_limit = 0.9

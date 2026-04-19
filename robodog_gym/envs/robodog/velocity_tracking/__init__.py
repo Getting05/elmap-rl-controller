@@ -67,8 +67,7 @@ class VelocityTrackingEasyEnv(LeggedRobot):
 
         policy_obs_buf, estimator_obs_buf, privileged_obs_buf, rew_buf, reset_buf, extras = super().step(actions)
 
-        # extract foot positions, with hardcoded indices from go1 or A1 models
-        # The  robot has 1 body and the number of joints is 12 leg joints + 1 base joint
+        # Feet indices are resolved from cfg.asset.foot_name during asset initialization.
         self.foot_positions = self.rigid_body_state.view(self.num_envs, self.num_bodies, 13)[:, self.feet_indices,
                                0:3]
 
@@ -76,7 +75,7 @@ class VelocityTrackingEasyEnv(LeggedRobot):
             "joint_pos": self.dof_pos.cpu().numpy(),
             "joint_vel": self.dof_vel.cpu().numpy(),
             "joint_pos_target": self.joint_pos_target.cpu().detach().numpy(),
-            "joint_vel_target": torch.zeros(12),
+            "joint_vel_target": torch.zeros(self.num_actions, device=self.device).cpu().numpy(),
             "body_linear_vel": self.base_lin_vel.cpu().detach().numpy(),
             "body_angular_vel": self.base_ang_vel.cpu().detach().numpy(),
             "body_linear_vel_cmd": self.commands.cpu().numpy()[:, 0:2],
