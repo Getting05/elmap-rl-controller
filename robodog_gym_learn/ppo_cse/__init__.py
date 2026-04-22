@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from ml_logger import logger
 # from torch.utils.tensorboard import SummaryWriter as TensorboardSummaryWriter
+import swanlab
 import wandb
 import yaml
 import matplotlib.pyplot as plt
@@ -256,6 +257,10 @@ class Runner:
             yaml.dump(cfg_dict, file, sort_keys=False, default_flow_style=False, Dumper=CustomNoAliasDumper)
     
         if self.cfg.cfg_ppo.runner.wandb_logging:
+            try:
+                swanlab.sync_wandb()
+            except Exception as e:
+                print(f"[WARNING] swanlab.sync_wandb() failed: {e}. Continuing without SwanLab sync.")
             self.wandb_run = wandb.init(project = self.cfg.cfg_ppo.runner.wandb_project,
                                         entity = self.cfg.cfg_ppo.runner.wandb_entity,
                                         config = cfg_dict,
