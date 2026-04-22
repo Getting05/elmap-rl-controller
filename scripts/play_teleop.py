@@ -309,12 +309,12 @@ class RobotController:
         }
 
 
-        self.max_x_vel = 0.1
-        self.max_y_vel = 0.2
+        self.max_x_vel = 1.0
+        self.max_y_vel = 1.0
         self.max_yaw_vel = 1.0
 
-        self.max_x_vel_shift = 1.0
-        self.max_y_vel_shift = 1.0
+        self.max_x_vel_shift = 2.0
+        self.max_y_vel_shift = 2.0
         self.max_yaw_vel_shift = 2.0
 
         self.max_push = 1.0

@@ -3,9 +3,18 @@
 # - Disable self collisions
 # - Lin and ang vel not oberved
 # - Full WTW dynamic randomization (friction, mass, pushes, gravity, restitution, motor strength, offset and lag)
+'''
+python train_exteroceptive_robust_icra_proposed.py --robot mybot_v2_1 
 
 
-def train_go1(headless=True, robot="go1_backpack"):
+从某个 run 的最后权重继续：
+python train_exteroceptive_robust_icra_proposed.py --robot mybot_v2_1 --resume-path rsl_exteroceptive_simple_mybot_v2_1/2026-04-20_04-29-11.849554
+从指定迭代继续（例如 18000）：
+python train_exteroceptive_robust_icra_proposed.py --robot mybot_v2_1 --resume-path rsl_exteroceptive_simple_mybot_v2_1/2026-04-20_04-29-11.849554 --resume-iteration 18000
+
+'''
+
+def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iteration=-1):
 
     import isaacgym
     assert isaacgym
@@ -34,6 +43,11 @@ def train_go1(headless=True, robot="go1_backpack"):
 
     is_mybot = robot == "mybot_v2_1"
 
+    if resume_path is not None:
+      Cfg.cfg_ppo.runner.resume = True
+      Cfg.cfg_ppo.runner.resume_path = resume_path
+      Cfg.cfg_ppo.runner.checkpoint = int(resume_iteration)
+
     # Cfg.cfg_ppo.runner.wandb_logging = False
     # Cfg.env.num_envs = 4
     # Cfg.terrain.num_cols = 3
@@ -44,13 +58,13 @@ def train_go1(headless=True, robot="go1_backpack"):
     # curriculum configuration
     # Cfg.commands.num_lin_vel_bins = 1 no used 
     # Cfg.commands.num_ang_vel_bins = 1
-    # Cfg.curriculum_thresholds.tracking_ang_vel = 0.95
+    Cfg.curriculum_thresholds.tracking_ang_vel = 0.9 # mybotconfig
     # Cfg.curriculum_thresholds.tracking_lin_vel = 0.95
     # Cfg.curriculum_thresholds.tracking_contacts_shaped_vel = 0.90
     # Cfg.curriculum_thresholds.tracking_contacts_shaped_force = 0.90
 
     # asset setup
-    Cfg.asset.self_collisions = 0 if is_mybot else 1  # 1 to disable, 0 to enable...bitwise filter
+    Cfg.asset.self_collisions = 1 if is_mybot else 1  # 1 to disable, 0 to enable...bitwise filter
 
     #-----------------------
     # control
@@ -73,7 +87,7 @@ def train_go1(headless=True, robot="go1_backpack"):
     Cfg.domain_rand.randomize_lag_timesteps = True # wtw true
 
     Cfg.domain_rand.randomize_friction = True
-    Cfg.domain_rand.friction_range = [0.05, 2.5] if is_mybot else [0.5, 4.5]
+    Cfg.domain_rand.friction_range = [0.5, 2.5] if is_mybot else [0.5, 4.5]
     Cfg.domain_rand.randomize_restitution = True  # wtw true
     Cfg.domain_rand.restitution_range = [0.0, 0.4]
     Cfg.domain_rand.randomize_base_mass = True
@@ -234,9 +248,9 @@ def train_go1(headless=True, robot="go1_backpack"):
     # Cfg.domain_rand.tile_height_curriculum_step = 0.01
     
     # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, none, smooth flat, rough flat]
-    Cfg.terrain.terrain_proportions = [0, 0, 0, 0, 1.0, 0, 0, 0.0, 0.0]
-    Cfg.terrain.curriculum = False
-    Cfg.terrain.max_platform_height = 0.15
+    Cfg.terrain.terrain_proportions = [0.15, 0.15, 0.10, 0.10, 0.30, 0.05, 0.0, 0.10, 0.05]
+    Cfg.terrain.curriculum = True
+    Cfg.terrain.max_platform_height = 0.08
     Cfg.terrain.slope_treshold = 0.25 ##added (maybe needs to be reduced)
     Cfg.terrain.terrain_noise_magnitude = 0.05
     Cfg.terrain.border_size = 10.0
@@ -295,10 +309,10 @@ def train_go1(headless=True, robot="go1_backpack"):
 
 
     #positive rewards
-    Cfg.reward_scales.tracking_lin_vel = 1.0
-    Cfg.rewards.tracking_sigma = 0.25  # tracking reward = exp(-error^2/sigma)
+    Cfg.reward_scales.tracking_lin_vel = 2.0 if is_mybot else 1.0
+    Cfg.rewards.tracking_sigma = 0.5 if is_mybot else 0.25  # tracking reward = exp(-error^2/sigma)
     Cfg.rewards.end_sigma_curriculum_iter = 0 # disable curriculum
-    Cfg.reward_scales.tracking_ang_vel = 0.5 ## was 3
+    Cfg.reward_scales.tracking_ang_vel = 0.35 if is_mybot else 0.5 ## was 3
     Cfg.rewards.tracking_sigma_yaw = 0.25
     Cfg.rewards.end_sigma_yaw_curriculum_iter = 0
 
@@ -315,12 +329,12 @@ def train_go1(headless=True, robot="go1_backpack"):
     
 
     #negative rewards
-    Cfg.reward_scales.base_height = -5 #-10
+    Cfg.reward_scales.base_height = -3 #-10
     Cfg.rewards.base_height_target = 0.33 if is_mybot else 0.30
-    Cfg.reward_scales.orientation = -2.0 #-4.0
+    Cfg.reward_scales.orientation = -1.0 #-4.0
 
     # go1 urdf weight no backpack: 11.308932. Backpack weight: 3.211. Increase by 28%
-    Cfg.reward_scales.torques = -0.00020 # best for A1: -0.00025
+    Cfg.reward_scales.torques = -0.00025 # best for A1: -0.00025 mybot：-0.00025
     Cfg.rewards.torque_hip_weight = 1.0
     Cfg.rewards.torque_pos_thigh_weight = 1.0
     Cfg.rewards.torque_pos_calf_weight = 1.0
@@ -344,7 +358,7 @@ def train_go1(headless=True, robot="go1_backpack"):
     # add torque limits, and torque reduction!
     # Cfg.asset.torque_limits_factor = 0.8
     Cfg.rewards.soft_torque_limit = 0.7
-    Cfg.reward_scales.torque_limits = -10.0
+    Cfg.reward_scales.torque_limits = -5.0
     
 
 
@@ -385,7 +399,7 @@ def train_go1(headless=True, robot="go1_backpack"):
     #-------------
     
 
-    Cfg.commands.resampling_time = 10 # twice per episode
+    Cfg.commands.resampling_time = 20 if is_mybot else 10
 
 
     # heading command
@@ -400,8 +414,8 @@ def train_go1(headless=True, robot="go1_backpack"):
     # Cfg.commands.limit_vel_yaw = [-1.5, 1.5]
 
 
-    Cfg.commands.lin_vel_x = [-0.5, 0.5]
-    Cfg.commands.limit_vel_x = [-1.0, 1.5] 
+    Cfg.commands.lin_vel_x = [-0.8, 0.8]
+    Cfg.commands.limit_vel_x = [-1.5, 2.5] 
     Cfg.commands.lin_vel_y = [-0.5, 0.5]
     Cfg.commands.limit_vel_y = [-1.0, 1.0]
     Cfg.commands.ang_vel_yaw = [-1.0, 1.0]
@@ -460,7 +474,7 @@ def train_go1(headless=True, robot="go1_backpack"):
     
     # cmd vx,vy,vtheta exactly 0 with standing_still_prob
     Cfg.commands.train_standing_still = True
-    Cfg.commands.standing_still_prob = 0.05
+    Cfg.commands.standing_still_prob = 0.02 if is_mybot else 0.05
 
 
 
@@ -477,8 +491,8 @@ def train_go1(headless=True, robot="go1_backpack"):
     runner.learn(num_learning_iterations=100000, init_at_random_ep_len=True, eval_freq=50)
 
 
-def train_mybot_v2_1(headless=True):
-    return train_go1(headless=headless, robot="mybot_v2_1")
+def train_mybot_v2_1(headless=True, resume_path=None, resume_iteration=-1):
+  return train_go1(headless=headless, robot="mybot_v2_1", resume_path=resume_path, resume_iteration=resume_iteration)
 
 
 if __name__ == '__main__':
@@ -498,8 +512,28 @@ if __name__ == '__main__':
     )
     parser.add_argument("--headless", dest="headless", action="store_true")
     parser.add_argument("--no-headless", dest="headless", action="store_false")
+    parser.add_argument(
+      "--resume-path",
+      type=str,
+      default=None,
+      help="run directory to resume from (absolute path, or path under runs/)",
+    )
+    parser.add_argument(
+      "--resume-iteration",
+      type=int,
+      default=-1,
+      help="checkpoint iteration to load, -1 means ac_weights_last.pt",
+    )
     parser.set_defaults(headless=True)
     args = parser.parse_args()
+
+    resolved_resume_path = None
+    if args.resume_path:
+      if os.path.isabs(args.resume_path):
+        resolved_resume_path = args.resume_path
+      else:
+        cleaned = args.resume_path[5:] if args.resume_path.startswith("runs/") else args.resume_path
+        resolved_resume_path = str(Path(f"{MINI_GYM_ROOT_DIR}/runs/{cleaned}").resolve())
 
     logger.configure(logger.utcnow(f'rsl_exteroceptive_simple_{args.robot}/%Y-%m-%d_%H-%M-%S.%f'),
                      root=Path(f"{MINI_GYM_ROOT_DIR}/runs").resolve(), )
@@ -563,6 +597,6 @@ if __name__ == '__main__':
 
     # to see the environment rendering, pass --no-headless
     if args.robot == "mybot_v2_1":
-      train_mybot_v2_1(headless=args.headless)
+      train_mybot_v2_1(headless=args.headless, resume_path=resolved_resume_path, resume_iteration=args.resume_iteration)
     else:
-      train_go1(headless=args.headless, robot=args.robot)
+      train_go1(headless=args.headless, robot=args.robot, resume_path=resolved_resume_path, resume_iteration=args.resume_iteration)

@@ -52,11 +52,7 @@ def config_mybot_v2_1(Cnfg: Union[Cfg, Meta]):
     _.self_collisions = 0  # 1 to disable, 0 to enable...bitwise filter
     _.flip_visual_attachments = False
     _.fix_base_link = False
-    _.armature = {
-            'FL_hip': 0.01, 'FR_hip': 0.01, 'RL_hip': 0.01, 'RR_hip': 0.01,
-            'FL_thigh': 0.01, 'FR_thigh': 0.01, 'RL_thigh': 0.01, 'RR_thigh': 0.01,
-            'FL_calf': 0.0544, 'FR_calf': 0.0544, 'RL_calf': 0.0544, 'RR_calf': 0.0544,
-        }
+    _.armature = 0.01
 
     _ = Cnfg.rewards
     _.soft_dof_pos_limit = 0.9

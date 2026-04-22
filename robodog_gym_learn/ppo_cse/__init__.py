@@ -115,20 +115,89 @@ class Runner:
 
         if self.cfg_ppo.runner.resume:
             # load pretrained weights from resume_path
-            from ml_logger import ML_Logger
-            loader = ML_Logger(root="http://escher.csail.mit.edu:8080", #TODO hardcoded!
-                               prefix=self.cfg_ppo.runner.resume_path)
-            weights = loader.load_torch("checkpoints/ac_weights_last.pt")
-            actor_critic.load_state_dict(state_dict=weights)
+            resume_path = self.cfg_ppo.runner.resume_path
+            ckpt_iter = getattr(self.cfg_ppo.runner, "checkpoint", -1)
+            ckpt_name = "ac_weights_last.pt" if ckpt_iter in [-1, None] else f"ac_weights_{int(ckpt_iter):06d}.pt"
 
-            if hasattr(self.env, "curricula") and self.cfg_ppo.runner.resume_curriculum:
-                # load curriculum state
-                distributions = loader.load_pkl("curriculum/distribution.pkl")
-                distribution_last = distributions[-1]["distribution"]
-                gait_names = [key[8:] if key.startswith("weights_") else None for key in distribution_last.keys()]
-                for gait_id, gait_name in enumerate(self.env.category_names):
-                    self.env.curricula[gait_id].weights = distribution_last[f"weights_{gait_name}"]
-                    print(gait_name)
+            local_resume_path = None
+            if resume_path is not None:
+                expanded = os.path.expanduser(str(resume_path))
+                if os.path.exists(expanded):
+                    local_resume_path = expanded
+
+            if local_resume_path is not None:
+                if os.path.isdir(local_resume_path):
+                    candidate_1 = os.path.join(local_resume_path, "checkpoints", ckpt_name)
+                    candidate_2 = os.path.join(local_resume_path, ckpt_name)
+                    ckpt_file = candidate_1 if os.path.exists(candidate_1) else candidate_2
+                else:
+                    ckpt_file = local_resume_path
+
+                if not os.path.exists(ckpt_file):
+                    raise FileNotFoundError(f"Resume checkpoint not found: {ckpt_file}")
+
+                weights = torch.load(ckpt_file, map_location=self.device)
+                actor_critic.load_state_dict(state_dict=weights)
+
+                if hasattr(self.env, "curricula") and self.cfg_ppo.runner.resume_curriculum:
+                    dist_file = os.path.join(os.path.dirname(os.path.dirname(ckpt_file)), "curriculum", "distribution.pkl")
+                    if os.path.exists(dist_file):
+                        import pickle
+                        with open(dist_file, "rb") as f:
+                            distributions = pickle.load(f)
+                        distribution_last = None
+                        if isinstance(distributions, list):
+                            if len(distributions) > 0 and isinstance(distributions[-1], dict):
+                                distribution_last = distributions[-1].get("distribution", None)
+                        elif isinstance(distributions, dict):
+                            if "distribution" in distributions and isinstance(distributions["distribution"], dict):
+                                distribution_last = distributions["distribution"]
+                            else:
+                                # Some runs store entries in a dict keyed by iteration/index
+                                values = list(distributions.values())
+                                if len(values) > 0 and isinstance(values[-1], dict):
+                                    distribution_last = values[-1].get("distribution", None)
+
+                        if isinstance(distribution_last, dict):
+                            gait_names = [key[8:] if key.startswith("weights_") else None for key in distribution_last.keys()]
+                            for gait_id, gait_name in enumerate(self.env.category_names):
+                                key = f"weights_{gait_name}"
+                                if gait_name is not None and key in distribution_last:
+                                    self.env.curricula[gait_id].weights = distribution_last[key]
+                                    print(gait_name)
+                        else:
+                            print("[Resume] curriculum/distribution.pkl format not recognized, skip curriculum resume.")
+            else:
+                from ml_logger import ML_Logger
+                loader = ML_Logger(root="http://escher.csail.mit.edu:8080", #TODO hardcoded!
+                                   prefix=resume_path)
+                weights = loader.load_torch(f"checkpoints/{ckpt_name}")
+                actor_critic.load_state_dict(state_dict=weights)
+
+                if hasattr(self.env, "curricula") and self.cfg_ppo.runner.resume_curriculum:
+                    # load curriculum state
+                    distributions = loader.load_pkl("curriculum/distribution.pkl")
+                    distribution_last = None
+                    if isinstance(distributions, list):
+                        if len(distributions) > 0 and isinstance(distributions[-1], dict):
+                            distribution_last = distributions[-1].get("distribution", None)
+                    elif isinstance(distributions, dict):
+                        if "distribution" in distributions and isinstance(distributions["distribution"], dict):
+                            distribution_last = distributions["distribution"]
+                        else:
+                            values = list(distributions.values())
+                            if len(values) > 0 and isinstance(values[-1], dict):
+                                distribution_last = values[-1].get("distribution", None)
+
+                    if isinstance(distribution_last, dict):
+                        gait_names = [key[8:] if key.startswith("weights_") else None for key in distribution_last.keys()]
+                        for gait_id, gait_name in enumerate(self.env.category_names):
+                            key = f"weights_{gait_name}"
+                            if gait_name is not None and key in distribution_last:
+                                self.env.curricula[gait_id].weights = distribution_last[key]
+                                print(gait_name)
+                    else:
+                        print("[Resume] curriculum/distribution.pkl format not recognized, skip curriculum resume.")
 
         self.alg = PPO(actor_critic, cfg_ppo=self.cfg_ppo, device=self.device)
         self.num_steps_per_env = self.cfg_ppo.runner.num_steps_per_env

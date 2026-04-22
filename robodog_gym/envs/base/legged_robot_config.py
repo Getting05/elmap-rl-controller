@@ -157,7 +157,7 @@ class Cfg(PrefixProto, cli=False):
         max_yaw_curriculum = 1.
         exclusive_command_sampling = False
         num_commands = 3   # 3 for only x y yaw control, 4 if also heading_command=True, more only used for WTW
-        resampling_time = 10.  # time before command are changed[s]
+        resampling_time = 20.  # time before command are changed[s]
         subsample_gait = False
         gait_interval_s = 10.  # time between resampling gait params
         vel_interval_s = 10.
@@ -240,7 +240,7 @@ class Cfg(PrefixProto, cli=False):
         balance_gait_distribution = True
         gaitwise_curricula = True
         train_standing_still = False
-        standing_still_prob = 0.1
+        standing_still_prob = 0.01
         standing_still_explicit_flag = False # if true, input 15 (aux_reward_coef) is set to 1 if command velocities are all 0
 
     class curriculum_thresholds(PrefixProto, cli=False):
@@ -332,9 +332,9 @@ class Cfg(PrefixProto, cli=False):
 
         sigma_rew_neg = 5
         reward_container_name = "CoRLRewards"
-        tracking_sigma = 0.25  # tracking reward = exp(-error^2/sigma)
-        tracking_sigma_lat = 0.25  # tracking reward = exp(-error^2/sigma)
-        tracking_sigma_long = 0.25  # tracking reward = exp(-error^2/sigma)
+        tracking_sigma = 0.5  # tracking reward = exp(-error^2/sigma) mybotconfig
+        tracking_sigma_lat = 0.5  # tracking reward = exp(-error^2/sigma)
+        tracking_sigma_long = 0.5  # tracking reward = exp(-error^2/sigma)
         tracking_sigma_yaw = 0.25  # tracking reward = exp(-error^2/sigma)
         soft_dof_pos_limit = 1.  # percentage of urdf limits, values above this limit are penalized
         soft_dof_vel_limit = 1.
