@@ -2,6 +2,7 @@ import time
 from collections import deque
 import copy
 import os
+import statistics
 
 import torch
 import numpy as np
@@ -303,6 +304,27 @@ class Runner:
         tot_iter = self.current_learning_iteration + num_learning_iterations
         for it in range(self.current_learning_iteration, tot_iter):
             start = time.time()
+
+            def _to_scalar(val):
+                if isinstance(val, torch.Tensor):
+                    if val.numel() == 1:
+                        return float(val.item())
+                    return None
+                if isinstance(val, np.ndarray):
+                    if val.size == 1:
+                        return float(val.item())
+                    return None
+                if isinstance(val, np.generic):
+                    return float(val)
+                if isinstance(val, (int, float, bool)):
+                    return float(val)
+                return None
+
+            train_episode_sums = {}
+            train_episode_counts = {}
+            eval_episode_sums = {}
+            eval_episode_counts = {}
+
             # Rollout
             with torch.inference_mode():
                 # Collect actions and perform a step in the environment
@@ -329,11 +351,23 @@ class Runner:
                         with logger.Prefix(metrics="train/episode"):
                             logger.store_metrics(**infos['train/episode'])
                             # ep_infos.append(infos['train/episode'])
+                        for key, value in infos['train/episode'].items():
+                            scalar = _to_scalar(value)
+                            if scalar is None:
+                                continue
+                            train_episode_sums[key] = train_episode_sums.get(key, 0.0) + scalar
+                            train_episode_counts[key] = train_episode_counts.get(key, 0) + 1
 
                     if 'eval/episode' in infos:
                         with logger.Prefix(metrics="eval/episode"):
                             logger.store_metrics(**infos['eval/episode'])
                             # ep_infos.append(infos['eval/episode'])
+                        for key, value in infos['eval/episode'].items():
+                            scalar = _to_scalar(value)
+                            if scalar is None:
+                                continue
+                            eval_episode_sums[key] = eval_episode_sums.get(key, 0.0) + scalar
+                            eval_episode_counts[key] = eval_episode_counts.get(key, 0) + 1
                     
                     if 'curriculum' in infos:
 
@@ -378,6 +412,11 @@ class Runner:
             mean_value_loss, mean_surrogate_loss, mean_adaptation_module_loss, mean_decoder_loss, mean_decoder_loss_student, mean_adaptation_module_test_loss, mean_decoder_test_loss, mean_decoder_test_loss_student = self.alg.update()
             stop = time.time()
             learn_time = stop - start
+
+            train_episode_means = {k: train_episode_sums[k] / train_episode_counts[k]
+                                   for k in train_episode_sums if train_episode_counts[k] > 0}
+            eval_episode_means = {k: eval_episode_sums[k] / eval_episode_counts[k]
+                                  for k in eval_episode_sums if eval_episode_counts[k] > 0}
 
             logger.store_metrics(
                 # total_time=learn_time - collection_time,
@@ -514,13 +553,20 @@ class Runner:
                 "Train/mean_episode_length/time": statistics.mean(locs['lenbuffer']),
             }, self.tot_time)
 
-        # Rewards (mean of reward sums over whole episode, logged at end of each episode)
-        if 'train/episode' in locs["infos"]:
-            for key in locs["infos"]['train/episode']:
-                if "rew" in key:
-                    self.wandb_run.log({"EpisodeRew/" + key: locs["infos"]['train/episode'][key]}, locs['it'])
-                else:
-                    self.wandb_run.log({"EpisodeMisc/" + key: locs["infos"]['train/episode'][key]}, locs['it'])
+        # Rewards/Episode metrics: use rollout-level mean to avoid missing logs when last env step has no episode end
+        train_episode_means = locs.get("train_episode_means", {})
+        for key, value in train_episode_means.items():
+            if "rew" in key:
+                self.wandb_run.log({"EpisodeRew/" + key: value}, locs['it'])
+            else:
+                self.wandb_run.log({"EpisodeMisc/" + key: value}, locs['it'])
+
+        eval_episode_means = locs.get("eval_episode_means", {})
+        for key, value in eval_episode_means.items():
+            if "rew" in key:
+                self.wandb_run.log({"EvalEpisodeRew/" + key: value}, locs['it'])
+            else:
+                self.wandb_run.log({"EvalEpisodeMisc/" + key: value}, locs['it'])
 
 
 

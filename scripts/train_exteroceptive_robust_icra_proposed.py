@@ -113,7 +113,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     Cfg.domain_rand.gravity_impulse_duration = 0.99
 
     # pushes as in rsl
-    Cfg.domain_rand.push_robots = False #mybotconfig先不用
+    Cfg.domain_rand.push_robots = True #mybotconfig先不用
     Cfg.domain_rand.max_push_vel_xy = 1.0
     Cfg.domain_rand.push_interval_s = 15.0
 
@@ -248,9 +248,9 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     # Cfg.domain_rand.tile_height_curriculum_step = 0.01
     
     # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, none, smooth flat, rough flat]
-    Cfg.terrain.terrain_proportions = [0.15, 0.15, 0.10, 0.10, 0.30, 0.05, 0.0, 0.10, 0.05]
+    Cfg.terrain.terrain_proportions = [0.10, 0.10, 0.08, 0.08, 0.20, 0.04, 0.0, 0.30, 0.10]
     Cfg.terrain.curriculum = True
-    Cfg.terrain.max_platform_height = 0.08
+    Cfg.terrain.max_platform_height = 0.15
     Cfg.terrain.slope_treshold = 0.25 ##added (maybe needs to be reduced)
     Cfg.terrain.terrain_noise_magnitude = 0.05
     Cfg.terrain.border_size = 10.0
@@ -291,7 +291,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     Cfg.rewards.terminal_body_height = 0.10
     Cfg.rewards.use_terminal_roll_pitch = True
     Cfg.rewards.terminal_body_ori =  1.39626  # 80 degrees #1.22173 # 70 degrees
-    Cfg.reward_scales.termination = -0 # not
+    Cfg.reward_scales.termination = -1.0
     
 
     # ---------------------
@@ -340,7 +340,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     Cfg.rewards.torque_pos_calf_weight = 1.0
 
     Cfg.reward_scales.dof_pos = -0.1 
-    Cfg.rewards.dof_pos_hip_weight = 3.0
+    Cfg.rewards.dof_pos_hip_weight = 5.0
     Cfg.rewards.dof_pos_thigh_weight = 1.0
     Cfg.rewards.dof_pos_calf_weight = 0.0
 
@@ -353,12 +353,12 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     Cfg.reward_scales.ang_vel_xy = -0.05
 
     Cfg.reward_scales.dof_pos_limits = -10.0
-    Cfg.rewards.soft_dof_pos_limit = 0.9
+    Cfg.rewards.soft_dof_pos_limit = 0.95
 
     # add torque limits, and torque reduction!
     # Cfg.asset.torque_limits_factor = 0.8
-    Cfg.rewards.soft_torque_limit = 0.7
-    Cfg.reward_scales.torque_limits = -5.0
+    Cfg.rewards.soft_torque_limit = 0.9
+    Cfg.reward_scales.torque_limits = -1.0
     
 
 
@@ -389,9 +389,9 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     #-------------
 
     Cfg.cfg_ppo.algorithm.schedule = 'adaptive' # 'adaptive' # if not adaptive let Adam handle it. Adaptive is KL thing from RSL paper
-    Cfg.cfg_ppo.algorithm.learning_rate = 1.e-3  # Initial learning rate
+    Cfg.cfg_ppo.algorithm.learning_rate = 5.e-4  # Initial learning rate
     Cfg.cfg_ppo.algorithm.desired_kl = 0.01 # default 0.01 # Used by adaptive learning rate
-    Cfg.cfg_ppo.algorithm.lr_adaptive_schedule_decay = 1.25 # 1.1 1.001 # defaul 1.5 decay factor for adaptive KL-based learning rate schedule
+    Cfg.cfg_ppo.algorithm.lr_adaptive_schedule_decay = 1.1 # lower volatility for adaptive KL schedule
     # try to increase entropy!
 
     #-------------
@@ -399,7 +399,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     #-------------
     
 
-    Cfg.commands.resampling_time = 20 if is_mybot else 10
+    Cfg.commands.resampling_time = 10 if is_mybot else 10
 
 
     # heading command
@@ -415,7 +415,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
 
 
     Cfg.commands.lin_vel_x = [-0.8, 0.8]
-    Cfg.commands.limit_vel_x = [-1.5, 2.5] 
+    Cfg.commands.limit_vel_x = [-1.5, 2.0] 
     Cfg.commands.lin_vel_y = [-0.5, 0.5]
     Cfg.commands.limit_vel_y = [-1.0, 1.0]
     Cfg.commands.ang_vel_yaw = [-1.0, 1.0]
