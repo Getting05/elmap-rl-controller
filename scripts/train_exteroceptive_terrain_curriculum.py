@@ -17,6 +17,7 @@ def train_go1(headless=True, robot="go1_backpack"):
     from robodog_gym.envs.robodog.a1_backpack_config import config_a1_backpack
     from robodog_gym.envs.robodog.go1_backpack_config import config_go1_backpack
     from robodog_gym.envs.robodog.mybot_v2_1_config import config_mybot_v2_1
+    from robodog_gym.envs.robodog.mybot_v3_config import config_mybot_v3
     from robodog_gym.envs.robodog.velocity_tracking import VelocityTrackingEasyEnv
 
     from ml_logger import logger
@@ -29,6 +30,8 @@ def train_go1(headless=True, robot="go1_backpack"):
       config_go1_backpack(Cfg)
     elif robot == "mybot_v2_1":
       config_mybot_v2_1(Cfg)
+    elif robot == "mybot_v3":
+      config_mybot_v3(Cfg)
     else:
       raise ValueError(f"Unsupported robot: {robot}")
 
@@ -561,6 +564,10 @@ def train_mybot_v2_1(headless=True):
     return train_go1(headless=headless, robot="mybot_v2_1")
 
 
+def train_mybot_v3(headless=True):
+    return train_go1(headless=headless, robot="mybot_v3")
+
+
 if __name__ == '__main__':
     import argparse
     import os
@@ -573,7 +580,7 @@ if __name__ == '__main__':
         "--robot",
         type=str,
         default="go1_backpack",
-        choices=["go1_backpack", "mybot_v2_1"],
+        choices=["go1_backpack", "mybot_v2_1", "mybot_v3"],
         help="robot config to train",
     )
     parser.add_argument("--headless", dest="headless", action="store_true")
@@ -644,5 +651,7 @@ if __name__ == '__main__':
     # to see the environment rendering, pass --no-headless
     if args.robot == "mybot_v2_1":
         train_mybot_v2_1(headless=args.headless)
+    elif args.robot == "mybot_v3":
+        train_mybot_v3(headless=args.headless)
     else:
         train_go1(headless=args.headless, robot=args.robot)

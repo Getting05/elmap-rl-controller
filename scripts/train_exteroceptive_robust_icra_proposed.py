@@ -5,6 +5,7 @@
 # - Full WTW dynamic randomization (friction, mass, pushes, gravity, restitution, motor strength, offset and lag)
 '''
 python train_exteroceptive_robust_icra_proposed.py --robot mybot_v2_1 
+python train_exteroceptive_robust_icra_proposed.py --robot mybot_v3
 
 
 从某个 run 的最后权重继续：
@@ -26,6 +27,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     from robodog_gym.envs.robodog.a1_backpack_config import config_a1_backpack
     from robodog_gym.envs.robodog.go1_backpack_config import config_go1_backpack
     from robodog_gym.envs.robodog.mybot_v2_1_config import config_mybot_v2_1
+    from robodog_gym.envs.robodog.mybot_v3_config import config_mybot_v3
     from robodog_gym.envs.robodog.velocity_tracking import VelocityTrackingEasyEnv
 
     from ml_logger import logger
@@ -38,10 +40,12 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
       config_go1_backpack(Cfg)
     elif robot == "mybot_v2_1":
       config_mybot_v2_1(Cfg) # 会被覆盖
+    elif robot == "mybot_v3":
+      config_mybot_v3(Cfg)
     else:
       raise ValueError(f"Unsupported robot: {robot}")
 
-    is_mybot = robot == "mybot_v2_1"
+    is_mybot = robot.startswith("mybot")
 
     if resume_path is not None:
       Cfg.cfg_ppo.runner.resume = True
@@ -495,6 +499,10 @@ def train_mybot_v2_1(headless=True, resume_path=None, resume_iteration=-1):
   return train_go1(headless=headless, robot="mybot_v2_1", resume_path=resume_path, resume_iteration=resume_iteration)
 
 
+def train_mybot_v3(headless=True, resume_path=None, resume_iteration=-1):
+  return train_go1(headless=headless, robot="mybot_v3", resume_path=resume_path, resume_iteration=resume_iteration)
+
+
 if __name__ == '__main__':
     import argparse
     import os
@@ -507,7 +515,7 @@ if __name__ == '__main__':
       "--robot",
       type=str,
       default="go1_backpack",
-      choices=["go1_backpack", "mybot_v2_1"],
+      choices=["go1_backpack", "mybot_v2_1", "mybot_v3"],
       help="robot config to train",
     )
     parser.add_argument("--headless", dest="headless", action="store_true")
@@ -598,5 +606,7 @@ if __name__ == '__main__':
     # to see the environment rendering, pass --no-headless
     if args.robot == "mybot_v2_1":
       train_mybot_v2_1(headless=args.headless, resume_path=resolved_resume_path, resume_iteration=args.resume_iteration)
+    elif args.robot == "mybot_v3":
+      train_mybot_v3(headless=args.headless, resume_path=resolved_resume_path, resume_iteration=args.resume_iteration)
     else:
       train_go1(headless=args.headless, robot=args.robot, resume_path=resolved_resume_path, resume_iteration=args.resume_iteration)
