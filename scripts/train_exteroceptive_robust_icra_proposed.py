@@ -87,7 +87,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     Cfg.domain_rand.randomize_lag_timesteps = True # wtw true
 
     Cfg.domain_rand.randomize_friction = True
-    Cfg.domain_rand.friction_range = [0.5, 2.5] if is_mybot else [0.5, 4.5]
+    Cfg.domain_rand.friction_range = [0.5, 3.0] if is_mybot else [0.5, 4.5]
     Cfg.domain_rand.randomize_restitution = True  # wtw true
     Cfg.domain_rand.restitution_range = [0.0, 0.4]
     Cfg.domain_rand.randomize_base_mass = True
@@ -107,7 +107,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
 
 
     # gravity changes and pushes
-    Cfg.domain_rand.randomize_gravity = False # wtw true #mybotconfig先不用
+    Cfg.domain_rand.randomize_gravity = True # wtw true #mybotconfig先不用
     Cfg.domain_rand.gravity_range = [-1.0, 1.0]
     Cfg.domain_rand.gravity_rand_interval_s = 8.0
     Cfg.domain_rand.gravity_impulse_duration = 0.99
@@ -247,8 +247,8 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     # Cfg.domain_rand.tile_height_update_interval = 1000000
     # Cfg.domain_rand.tile_height_curriculum_step = 0.01
     
-    # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, none, smooth flat, rough flat]
-    Cfg.terrain.terrain_proportions = [0.10, 0.10, 0.08, 0.08, 0.20, 0.04, 0.0, 0.30, 0.10]
+    # terrain type[smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, none, smooth flat, rough flat]
+    Cfg.terrain.terrain_proportions = [0, 0, 0, 0, 1.0, 0, 0, 0.0, 0.0]
     Cfg.terrain.curriculum = True
     Cfg.terrain.max_platform_height = 0.15
     Cfg.terrain.slope_treshold = 0.25 ##added (maybe needs to be reduced)
@@ -415,7 +415,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
 
 
     Cfg.commands.lin_vel_x = [-0.8, 0.8]
-    Cfg.commands.limit_vel_x = [-1.5, 2.0] 
+    Cfg.commands.limit_vel_x = [-1.0, 1.5] 
     Cfg.commands.lin_vel_y = [-0.5, 0.5]
     Cfg.commands.limit_vel_y = [-1.0, 1.0]
     Cfg.commands.ang_vel_yaw = [-1.0, 1.0]
