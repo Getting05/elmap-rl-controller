@@ -91,7 +91,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     Cfg.domain_rand.randomize_lag_timesteps = True # wtw true
 
     Cfg.domain_rand.randomize_friction = True
-    Cfg.domain_rand.friction_range = [0.5, 3.0] if is_mybot else [0.5, 4.5]
+    Cfg.domain_rand.friction_range = [0.5, 3.0] if is_mybot else [0.5, 3.0]
     Cfg.domain_rand.randomize_restitution = True  # wtw true
     Cfg.domain_rand.restitution_range = [0.0, 0.4]
     Cfg.domain_rand.randomize_base_mass = True
@@ -334,7 +334,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
 
     #negative rewards
     Cfg.reward_scales.base_height = -3 #-10
-    Cfg.rewards.base_height_target = 0.33 if is_mybot else 0.30
+    Cfg.rewards.base_height_target = 0.32 if is_mybot else 0.30
     Cfg.reward_scales.orientation = -1.0 #-4.0
 
     # go1 urdf weight no backpack: 11.308932. Backpack weight: 3.211. Increase by 28%
@@ -393,9 +393,9 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     #-------------
 
     Cfg.cfg_ppo.algorithm.schedule = 'adaptive' # 'adaptive' # if not adaptive let Adam handle it. Adaptive is KL thing from RSL paper
-    Cfg.cfg_ppo.algorithm.learning_rate = 5.e-4  # Initial learning rate
+    Cfg.cfg_ppo.algorithm.learning_rate = 1e-3  # Initial learning rate
     Cfg.cfg_ppo.algorithm.desired_kl = 0.01 # default 0.01 # Used by adaptive learning rate
-    Cfg.cfg_ppo.algorithm.lr_adaptive_schedule_decay = 1.1 # lower volatility for adaptive KL schedule
+    Cfg.cfg_ppo.algorithm.lr_adaptive_schedule_decay = 1.25 # lower volatility for adaptive KL schedule
     # try to increase entropy!
 
     #-------------
