@@ -85,3 +85,7 @@ play_saved_plots
 *.png
 *.csv
 *.env
+build/
+install/
+.codex
+log/
