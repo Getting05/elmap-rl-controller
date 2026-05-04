@@ -3,6 +3,7 @@
 import os
 from typing import Dict
 import time
+import numpy as np
 
 from isaacgym import gymtorch, gymapi, gymutil
 from isaacgym.torch_utils import *
@@ -401,7 +402,8 @@ class LeggedRobot(BaseTask):
             else:
                 self.terrain = Terrain(self.cfg.terrain, self.num_train_envs)
         if mesh_type == 'plane':
-            self._create_ground_plane()
+            if not getattr(self.cfg.terrain, "custom_trenches", None):
+                self._create_ground_plane()
         elif mesh_type == 'heightfield':
             self._create_heightfield()
         elif mesh_type == 'trimesh':
@@ -1498,6 +1500,147 @@ class LeggedRobot(BaseTask):
         self.height_samples = torch.tensor(self.terrain.heightsamples).view(self.terrain.tot_rows,
                                                                             self.terrain.tot_cols).to(self.device)
 
+    def _create_custom_terrain_meshes(self):
+        """Adds static user-provided triangle meshes to the simulation."""
+        custom_meshes = getattr(self.cfg.terrain, "custom_meshes", [])
+        if not custom_meshes:
+            return
+
+        import trimesh
+
+        placement = getattr(self.cfg.terrain, "custom_mesh_placement", "absolute")
+        if placement == "env_columns":
+            mesh_instances = []
+            spacing = self.cfg.env.env_spacing
+            for env_origin in self.env_origins:
+                col = int(torch.round(env_origin[1] / spacing).item()) if spacing > 0 else 0
+                mesh_cfg = custom_meshes[col % len(custom_meshes)]
+                rel_pos = mesh_cfg.get("rel_pos", [2.0, 0.0, 0.0])
+                mesh_instance = dict(mesh_cfg)
+                mesh_instance["pos"] = [
+                    env_origin[0].item() + rel_pos[0],
+                    env_origin[1].item() + rel_pos[1],
+                    env_origin[2].item() + rel_pos[2],
+                ]
+                mesh_instances.append(mesh_instance)
+        else:
+            mesh_instances = custom_meshes
+
+        for mesh_cfg in mesh_instances:
+            mesh_path = mesh_cfg["file"].format(MINI_GYM_ROOT_DIR=MINI_GYM_ROOT_DIR)
+            mesh = trimesh.load(mesh_path, force="mesh")
+            vertices = np.asarray(mesh.vertices, dtype=np.float32)
+            triangles = np.asarray(mesh.faces, dtype=np.uint32)
+
+            scale = mesh_cfg.get("scale", [1.0, 1.0, 1.0])
+            vertices *= np.asarray(scale, dtype=np.float32)
+
+            yaw = mesh_cfg.get("yaw", 0.0)
+            if yaw != 0.0:
+                c, s = np.cos(yaw), np.sin(yaw)
+                rot = np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]], dtype=np.float32)
+                vertices = vertices @ rot.T
+
+            pos = mesh_cfg.get("pos", [0.0, 0.0, 0.0])
+            tm_params = gymapi.TriangleMeshParams()
+            tm_params.nb_vertices = vertices.shape[0]
+            tm_params.nb_triangles = triangles.shape[0]
+            tm_params.transform.p.x = pos[0]
+            tm_params.transform.p.y = pos[1]
+            tm_params.transform.p.z = pos[2]
+            tm_params.static_friction = mesh_cfg.get("static_friction", self.cfg.terrain.static_friction)
+            tm_params.dynamic_friction = mesh_cfg.get("dynamic_friction", self.cfg.terrain.dynamic_friction)
+            tm_params.restitution = mesh_cfg.get("restitution", self.cfg.terrain.restitution)
+
+            self.gym.add_triangle_mesh(
+                self.sim,
+                vertices.flatten(order="C"),
+                triangles.flatten(order="C"),
+                tm_params,
+            )
+
+    def _create_custom_trench_terrain(self):
+        """Creates a flat terrain with long rectangular trenches."""
+        trench_cfg = getattr(self.cfg.terrain, "custom_trenches", None)
+        if not trench_cfg:
+            return
+
+        patterns = trench_cfg.get("patterns")
+        if not patterns:
+            patterns = [trench_cfg]
+        depth = trench_cfg.get("depth", 2.0)
+        x_half_length = trench_cfg.get("x_half_length", self.cfg.env.env_spacing * 0.45)
+        y_half_length = trench_cfg.get("y_half_length", self.cfg.env.env_spacing * 0.45)
+
+        vertices = []
+        triangles = []
+
+        def add_box(x0, x1, y0, y1, z0, z1):
+            base = len(vertices)
+            vertices.extend([
+                [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+                [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1],
+            ])
+            triangles.extend([
+                [base + 4, base + 5, base + 6], [base + 4, base + 6, base + 7],
+                [base + 0, base + 2, base + 1], [base + 0, base + 3, base + 2],
+                [base + 0, base + 1, base + 5], [base + 0, base + 5, base + 4],
+                [base + 1, base + 2, base + 6], [base + 1, base + 6, base + 5],
+                [base + 2, base + 3, base + 7], [base + 2, base + 7, base + 6],
+                [base + 3, base + 0, base + 4], [base + 3, base + 4, base + 7],
+            ])
+
+        for env_id, env_origin in enumerate(self.env_origins):
+            pattern = patterns[env_id % len(patterns)]
+            trench_width = pattern.get("trench_width", 0.1)
+            solid_width = pattern.get("solid_width", 0.2)
+            orientation = pattern.get("orientation", "x")
+            period = trench_width + solid_width
+
+            x_min = env_origin[0].item() - x_half_length
+            x_max = env_origin[0].item() + x_half_length
+            y_min = env_origin[1].item() - y_half_length
+            y_max = env_origin[1].item() + y_half_length
+
+            if orientation == "x":
+                y = y_min
+                while y < y_max:
+                    solid_y0 = y
+                    solid_y1 = min(y + solid_width, y_max)
+                    if solid_y1 > solid_y0:
+                        add_box(x_min, x_max, solid_y0, solid_y1, -depth, 0.0)
+                    y += period
+            elif orientation == "y":
+                x = x_min
+                while x < x_max:
+                    solid_x0 = x
+                    solid_x1 = min(x + solid_width, x_max)
+                    if solid_x1 > solid_x0:
+                        add_box(solid_x0, solid_x1, y_min, y_max, -depth, 0.0)
+                    x += period
+            else:
+                raise ValueError(f"Unknown trench orientation: {orientation}")
+
+        vertices = np.asarray(vertices, dtype=np.float32)
+        triangles = np.asarray(triangles, dtype=np.uint32)
+
+        tm_params = gymapi.TriangleMeshParams()
+        tm_params.nb_vertices = vertices.shape[0]
+        tm_params.nb_triangles = triangles.shape[0]
+        tm_params.transform.p.x = 0.0
+        tm_params.transform.p.y = 0.0
+        tm_params.transform.p.z = 0.0
+        tm_params.static_friction = self.cfg.terrain.static_friction
+        tm_params.dynamic_friction = self.cfg.terrain.dynamic_friction
+        tm_params.restitution = self.cfg.terrain.restitution
+
+        self.gym.add_triangle_mesh(
+            self.sim,
+            vertices.flatten(order="C"),
+            triangles.flatten(order="C"),
+            tm_params,
+        )
+
     def _create_envs(self):
         """ Creates environments:
              1. loads the robot URDF/MJCF asset,
@@ -1556,6 +1699,8 @@ class LeggedRobot(BaseTask):
         self.terrain_origins = torch.zeros(self.num_envs, 3, device=self.device, requires_grad=False)
         self.terrain_types = torch.zeros(self.num_envs, device=self.device, requires_grad=False, dtype=torch.long)
         self._call_train_eval(self._get_env_origins, torch.arange(self.num_envs, device=self.device))
+        self._create_custom_trench_terrain()
+        self._create_custom_terrain_meshes()
         env_lower = gymapi.Vec3(0., 0., 0.)
         env_upper = gymapi.Vec3(0., 0., 0.)
         self.actor_handles = []
@@ -1992,4 +2137,3 @@ class LeggedRobot(BaseTask):
         
         # Clamp negative values to foot_radius=0.02. This can happen especially because of the slope_treshold problem
         self.feet_height = torch.clamp(self.feet_height, min=0.02)
-

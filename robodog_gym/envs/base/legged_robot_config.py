@@ -91,6 +91,9 @@ class Cfg(PrefixProto, cli=False):
 
     class terrain(PrefixProto, cli=False):
         mesh_type = 'trimesh'  # "heightfield" # none, plane, heightfield or trimesh
+        custom_meshes = []
+        custom_mesh_placement = "absolute"
+        custom_trenches = None
         horizontal_scale = 0.1  # [m]
         vertical_scale = 0.005  # [m]
         border_size = 25 # [m]

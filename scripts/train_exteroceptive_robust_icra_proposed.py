@@ -283,6 +283,13 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
 
     Cfg.terrain.yaw_init_range = 3.14
 
+    if robot == "mybot_v3":
+      Cfg.env.num_envs = min(Cfg.env.num_envs, 64)
+      Cfg.terrain.mesh_type = "plane"
+      Cfg.terrain.curriculum = False
+      Cfg.terrain.teleport_robots = False
+      Cfg.terrain.center_robots = False
+
 
     # -----------------
     # Env termination
