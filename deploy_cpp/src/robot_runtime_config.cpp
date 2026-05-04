@@ -82,7 +82,7 @@ RobotRuntimeConfig default_robot_runtime_config() {
   cfg.default_dof_pos = {0.1f, 1.27f, -2.70f, -0.1f, 1.27f, -2.70f,
                          0.1f, 1.27f, -2.70f, -0.1f, 1.27f, -2.70f};
   cfg.standup_target_pos = {0.1f, 0.8f, -1.5f, -0.1f, 0.8f, -1.5f,
-                            0.1f, 1.0f, -1.5f, -0.1f, 1.0f, -1.5f};
+                            0.1f, 0.8f, -1.5f, -0.1f, 0.8f, -1.5f};
   cfg.policy_dof_pos = cfg.standup_target_pos;
   cfg.joint_pos_lower = {-0.8f, -1.04f, -2.69f, -0.8f, -1.04f, -2.69f,
                          -0.8f, -1.04f, -2.69f, -0.8f, -1.04f, -2.69f};
@@ -202,8 +202,26 @@ RobotRuntimeConfig load_robot_runtime_config(const std::string &yaml_file) {
       parse_optional<float>(root, "height_scale", cfg.height_scale);
   cfg.nominal_base_height = parse_optional<float>(
       root, "nominal_base_height", cfg.nominal_base_height);
+  cfg.height_measurement_scale = parse_optional<float>(
+      root, "height_measurement_scale", cfg.height_measurement_scale);
+  cfg.height_measurement_offset = parse_optional<float>(
+      root, "height_measurement_offset", cfg.height_measurement_offset);
   cfg.action_scale =
       parse_optional<float>(root, "action_scale", cfg.action_scale);
+  cfg.require_imu_ready_for_rl = parse_optional<bool>(
+      root, "require_imu_ready_for_rl", cfg.require_imu_ready_for_rl);
+  cfg.height_sanity_check_enable = parse_optional<bool>(
+      root, "height_sanity_check_enable", cfg.height_sanity_check_enable);
+  cfg.gravity_norm_min =
+      parse_optional<float>(root, "gravity_norm_min", cfg.gravity_norm_min);
+  cfg.gravity_norm_max =
+      parse_optional<float>(root, "gravity_norm_max", cfg.gravity_norm_max);
+  cfg.gravity_z_max =
+      parse_optional<float>(root, "gravity_z_max", cfg.gravity_z_max);
+  cfg.height_distance_min = parse_optional<float>(
+      root, "height_distance_min", cfg.height_distance_min);
+  cfg.height_distance_max = parse_optional<float>(
+      root, "height_distance_max", cfg.height_distance_max);
 
   cfg.cmd_deadband =
       parse_optional<float>(root, "cmd_deadband", cfg.cmd_deadband);

@@ -64,7 +64,16 @@ struct RobotRuntimeConfig {
   float height_bias = 0.3f;
   float height_scale = 5.0f;
   float nominal_base_height = 0.34f;
+  float height_measurement_scale = 1.0f;
+  float height_measurement_offset = 0.0f;
   float action_scale = 0.25f;
+  bool require_imu_ready_for_rl = true;
+  bool height_sanity_check_enable = true;
+  float gravity_norm_min = 0.8f;
+  float gravity_norm_max = 1.2f;
+  float gravity_z_max = -0.3f;
+  float height_distance_min = 0.05f;
+  float height_distance_max = 1.2f;
 
   float cmd_deadband = 0.05f;
   float control_dt = 0.008f;

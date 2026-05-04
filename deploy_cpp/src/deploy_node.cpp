@@ -199,7 +199,9 @@ public:
     imu_ = std::make_shared<IMUSubscriber>(config_.imu_topic,
                                            config_.imu_yaw_correction_deg);
     height_ = std::make_shared<HeightSubscriber>(config_.height_topic,
-                                                 config_.nominal_base_height);
+                                                 config_.nominal_base_height,
+                                                 config_.height_measurement_scale,
+                                                 config_.height_measurement_offset);
 
     if (sim_mode_) {
       mujoco_motor_ = std::make_unique<MujocoMotorDriver>(this, config_);
@@ -498,12 +500,98 @@ private:
     send_to_motors(target, config_.kp_joint, config_.kd_joint);
   }
 
+  static float vector_norm3(const std::array<float, 3> &v) {
+    return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  }
+
+  static void height_stats(
+      const std::array<float, NUM_HEIGHT_POINTS> &height_distances,
+      float &min_height, float &max_height, float &mean_height) {
+    min_height = height_distances[0];
+    max_height = height_distances[0];
+    mean_height = 0.0f;
+    for (float h : height_distances) {
+      min_height = std::min(min_height, h);
+      max_height = std::max(max_height, h);
+      mean_height += h;
+    }
+    mean_height /= static_cast<float>(NUM_HEIGHT_POINTS);
+  }
+
+  bool policy_inputs_safe(
+      const std::array<float, 3> &gravity,
+      const std::array<float, NUM_HEIGHT_POINTS> &height_distances,
+      std::string &reason) const {
+    if (config_.require_imu_ready_for_rl && !imu_->is_ready()) {
+      reason = "IMU not ready";
+      return false;
+    }
+
+    const float gravity_norm = vector_norm3(gravity);
+    if (!std::isfinite(gravity_norm) ||
+        gravity_norm < config_.gravity_norm_min ||
+        gravity_norm > config_.gravity_norm_max) {
+      reason = "projected_gravity norm out of range";
+      return false;
+    }
+    if (!std::isfinite(gravity[2]) || gravity[2] > config_.gravity_z_max) {
+      reason = "projected_gravity z has wrong sign";
+      return false;
+    }
+
+    if (config_.height_sanity_check_enable && height_->is_ready()) {
+      for (float h : height_distances) {
+        if (!std::isfinite(h) || h < config_.height_distance_min ||
+            h > config_.height_distance_max) {
+          reason = "height distance out of range";
+          return false;
+        }
+      }
+    }
+
+    reason.clear();
+    return true;
+  }
+
+  void print_policy_input_warning(
+      const std::string &reason, const std::array<float, 3> &gravity,
+      const std::array<float, NUM_HEIGHT_POINTS> &height_distances) {
+    const auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration<float>(now - last_policy_input_warning_).count() <
+        0.5f) {
+      return;
+    }
+    last_policy_input_warning_ = now;
+
+    float h_min = 0.0f;
+    float h_max = 0.0f;
+    float h_mean = 0.0f;
+    height_stats(height_distances, h_min, h_max, h_mean);
+    std::cout << "\n[RL_INPUT_BLOCKED] " << reason << " grav=[" << gravity[0]
+              << ", " << gravity[1] << ", " << gravity[2]
+              << "] |g|=" << vector_norm3(gravity) << " height_dist[min,max,mean]=["
+              << h_min << ", " << h_max << ", " << h_mean << "]"
+              << " imu=" << (imu_->is_ready() ? "OK" : "WAIT")
+              << " height=" << (height_->is_ready() ? "OK" : "FALLBACK")
+              << std::endl;
+  }
+
   void handle_rl() {
     auto commands = get_commands();
+    const auto gravity = imu_->get_projected_gravity();
+    const auto height_distances = height_->get_distances();
+    std::string unsafe_reason;
+    if (!policy_inputs_safe(gravity, height_distances, unsafe_reason)) {
+      print_policy_input_warning(unsafe_reason, gravity, height_distances);
+      send_to_motors(last_safe_target_, config_.kp_joint, config_.kd_joint);
+      return;
+    }
+
     std::array<float, NUM_ACTIONS> actions{};
     std::array<float, NUM_JOINTS> target{};
-    policy_->step(commands, imu_->get_projected_gravity(), get_dof_pos(),
-                  get_dof_vel(), height_->get_distances(), target, actions);
+    policy_->step(commands, gravity, get_dof_pos(), get_dof_vel(),
+                  height_distances, target, actions);
+    last_safe_target_ = target;
     send_to_motors(target, config_.kp_joint, config_.kd_joint);
   }
 
@@ -552,17 +640,39 @@ private:
     std::array<float, NUM_ACTIONS> actions{};
     std::array<float, NUM_JOINTS> target{};
     const auto commands = get_commands();
-    policy_->step(commands, imu_->get_projected_gravity(), get_dof_pos(),
-                  get_dof_vel(), height_->get_distances(), target, actions);
+    const auto gravity = imu_->get_projected_gravity();
+    const auto height_distances = height_->get_distances();
+    std::string unsafe_reason;
+    if (!policy_inputs_safe(gravity, height_distances, unsafe_reason)) {
+      print_policy_input_warning(unsafe_reason, gravity, height_distances);
+      send_to_motors(last_safe_target_, config_.kp_joint, config_.kd_joint);
+      return;
+    }
+
+    policy_->step(commands, gravity, get_dof_pos(), get_dof_vel(),
+                  height_distances, target, actions);
     pending_target_ = target;
     ++single_step_count_;
     single_step_pending_ = true;
+
+    float h_min = 0.0f;
+    float h_max = 0.0f;
+    float h_mean = 0.0f;
+    height_stats(height_distances, h_min, h_max, h_mean);
+    float max_abs_action = 0.0f;
+    for (float action : actions) {
+      max_abs_action = std::max(max_abs_action, std::fabs(action));
+    }
 
     std::cout << "\n========== SINGLE STEP CSE " << single_step_count_
               << " ==========\n";
     std::cout << "cmd=[" << commands[0] << ", " << commands[1] << ", "
               << commands[2] << "] imu=" << (imu_->is_ready() ? "OK" : "WAIT")
               << " height=" << (height_->is_ready() ? "OK" : "FALLBACK")
+              << " grav=[" << gravity[0] << ", " << gravity[1] << ", "
+              << gravity[2] << "] |g|=" << vector_norm3(gravity)
+              << " height_dist[min,max,mean]=[" << h_min << ", " << h_max
+              << ", " << h_mean << "] max|action|=" << max_abs_action
               << "\n";
     std::cout << std::left << std::setw(18) << "Joint" << std::right
               << std::setw(10) << "q" << std::setw(10) << "dq"
@@ -705,6 +815,7 @@ private:
   std::array<float, NUM_JOINTS> pending_target_{};
   bool single_step_pending_ = false;
   uint64_t single_step_count_ = 0;
+  std::chrono::steady_clock::time_point last_policy_input_warning_{};
 };
 
 } // namespace deploy

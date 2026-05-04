@@ -82,7 +82,7 @@ install(TARGETS deploy_node motor_debug_node
 install(FILES ${UNITREE_SDK_LIB}
   DESTINATION lib/${PROJECT_NAME}
 )
-install(DIRECTORY launch config robot policy sim
+install(DIRECTORY launch config robot policy sim scripts
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL
 )

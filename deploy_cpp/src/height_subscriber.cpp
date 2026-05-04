@@ -11,8 +11,11 @@
 namespace deploy {
 
 HeightSubscriber::HeightSubscriber(const std::string &topic,
-                                   float nominal_base_height)
-    : Node("height_subscriber") {
+                                   float nominal_base_height,
+                                   float measurement_scale,
+                                   float measurement_offset)
+    : Node("height_subscriber"), measurement_scale_(measurement_scale),
+      measurement_offset_(measurement_offset) {
   distances_.fill(nominal_base_height);
 
   rclcpp::QoS qos(rclcpp::KeepLast(1));
@@ -23,8 +26,9 @@ HeightSubscriber::HeightSubscriber(const std::string &topic,
       topic, qos, std::bind(&HeightSubscriber::callback, this,
                             std::placeholders::_1));
 
-  RCLCPP_INFO(get_logger(), "Subscribing height measurements: %s",
-              topic.c_str());
+  RCLCPP_INFO(get_logger(),
+              "Subscribing height measurements: %s (distance = raw * %.3f + %.3f)",
+              topic.c_str(), measurement_scale_, measurement_offset_);
 }
 
 void HeightSubscriber::callback(
@@ -48,7 +52,10 @@ void HeightSubscriber::callback(
   }
 
   std::lock_guard<std::mutex> lock(mutex_);
-  std::copy_n(msg->data.begin(), NUM_HEIGHT_POINTS, distances_.begin());
+  for (int i = 0; i < NUM_HEIGHT_POINTS; ++i) {
+    distances_[i] = msg->data[static_cast<size_t>(i)] * measurement_scale_ +
+                    measurement_offset_;
+  }
   received_.store(true, std::memory_order_release);
   msg_count_.fetch_add(1, std::memory_order_relaxed);
 }

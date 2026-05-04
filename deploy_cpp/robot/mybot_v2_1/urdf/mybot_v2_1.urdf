@@ -26,7 +26,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/body.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/body.STL" />
       </geometry>
       <material
         name="">
@@ -85,7 +85,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FL_hip.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FL_hip.STL" />
       </geometry>
       <material
         name="">
@@ -137,7 +137,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FL_thigh.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FL_thigh.STL" />
       </geometry>
       <material
         name="">
@@ -189,7 +189,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FL_calf.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FL_calf.STL" />
       </geometry>
       <material
         name="">
@@ -241,7 +241,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FL_foot.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FL_foot.STL" />
       </geometry>
       <material
         name="">
@@ -291,7 +291,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FR_hip.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FR_hip.STL" />
       </geometry>
       <material
         name="">
@@ -343,7 +343,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FR_thigh.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FR_thigh.STL" />
       </geometry>
       <material
         name="">
@@ -395,7 +395,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FR_calf.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FR_calf.STL" />
       </geometry>
       <material
         name="">
@@ -446,7 +446,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/FR_foot.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/FR_foot.STL" />
       </geometry>
       <material
         name="">
@@ -496,7 +496,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RL_hip.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RL_hip.STL" />
       </geometry>
       <material
         name="">
@@ -547,7 +547,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RL_thigh.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RL_thigh.STL" />
       </geometry>
       <material
         name="">
@@ -598,7 +598,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RL_calf.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RL_calf.STL" />
       </geometry>
       <material
         name="">
@@ -649,7 +649,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RL_foot.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RL_foot.STL" />
       </geometry>
       <material
         name="">
@@ -699,7 +699,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RR_hip.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RR_hip.STL" />
       </geometry>
       <material
         name="">
@@ -750,7 +750,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RR_thigh.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RR_thigh.STL" />
       </geometry>
       <material
         name="">
@@ -802,7 +802,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RR_calf.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RR_calf.STL" />
       </geometry>
       <material
         name="">
@@ -853,7 +853,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/RR_foot.STL" />
+          filename="package://deploy_cpp/robot/mybot_v2_1/meshes/RR_foot.STL" />
       </geometry>
       <material
         name="">
