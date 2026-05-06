@@ -43,6 +43,20 @@
       </geometry>
     </collision>
   </link>
+  <joint name="payload_joint" type="fixed">
+    <parent link="body" />
+    <child link="payload_link" />
+    <origin rpy="0 0 0" xyz="0 0 0" />
+  </joint>
+
+  <link name="payload_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="1.0" />
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001" />
+    </inertial>
+  </link>
+
   <joint name="imu_joint" type="fixed">
     <parent link="body" />
     <child link="imu_link" />

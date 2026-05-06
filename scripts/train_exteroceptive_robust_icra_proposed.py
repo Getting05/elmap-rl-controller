@@ -252,9 +252,9 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     # Cfg.domain_rand.tile_height_curriculum_step = 0.01
     
     # terrain type[smooth slope, rough slope, stairs up, stairs down, discrete, stepping stones, none, smooth flat, rough flat]
-    Cfg.terrain.terrain_proportions = [0, 0, 0, 0, 1.0, 0, 0, 0.0, 0.0]
+    Cfg.terrain.terrain_proportions = [0, 0, 0.3, 0.3, 0.4, 0, 0, 0.0, 0.0]
     Cfg.terrain.curriculum = True
-    Cfg.terrain.max_platform_height = 0.15
+    Cfg.terrain.max_platform_height = 0.20
     Cfg.terrain.slope_treshold = 0.25 ##added (maybe needs to be reduced)
     Cfg.terrain.terrain_noise_magnitude = 0.05
     Cfg.terrain.border_size = 10.0
@@ -339,18 +339,18 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
 
     # go1 urdf weight no backpack: 11.308932. Backpack weight: 3.211. Increase by 28%
     Cfg.reward_scales.torques = -0.00025 # best for A1: -0.00025 mybot：-0.00025
-    Cfg.rewards.torque_hip_weight = 1.0
+    Cfg.rewards.torque_hip_weight = 2.0 # [修改] 提高hip输出力矩的惩罚权重 (1.0 -> 3.0)
     Cfg.rewards.torque_pos_thigh_weight = 1.0
     Cfg.rewards.torque_pos_calf_weight = 1.0
 
     Cfg.reward_scales.dof_pos = -0.1 
-    Cfg.rewards.dof_pos_hip_weight = 5.0
+    Cfg.rewards.dof_pos_hip_weight = 12.0 # [修改] 强力惩罚hip偏离默认位置 (5.0 -> 15.0)
     Cfg.rewards.dof_pos_thigh_weight = 1.0
     Cfg.rewards.dof_pos_calf_weight = 0.0
 
     Cfg.reward_scales.dof_vel = 0
     Cfg.reward_scales.dof_acc = -2.5e-7
-    Cfg.reward_scales.action_rate = -0.01
+    Cfg.reward_scales.action_rate = -0.02 # [修改] 加大整体动作变化率(高频振荡)的惩罚 (-0.01 -> -0.02)
     Cfg.reward_scales.feet_slip = -0.05
     Cfg.reward_scales.collision = -1.
     Cfg.reward_scales.lin_vel_z = -2.0
@@ -478,7 +478,7 @@ def train_go1(headless=True, robot="go1_backpack", resume_path=None, resume_iter
     
     # cmd vx,vy,vtheta exactly 0 with standing_still_prob
     Cfg.commands.train_standing_still = True
-    Cfg.commands.standing_still_prob = 0.02 if is_mybot else 0.05
+    Cfg.commands.standing_still_prob = 0.05 if is_mybot else 0.05
 
 
 
