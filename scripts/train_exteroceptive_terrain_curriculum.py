@@ -18,6 +18,7 @@ def train_go1(headless=True, robot="go1_backpack"):
     from robodog_gym.envs.robodog.go1_backpack_config import config_go1_backpack
     from robodog_gym.envs.robodog.mybot_v2_1_config import config_mybot_v2_1
     from robodog_gym.envs.robodog.mybot_v3_config import config_mybot_v3
+    from robodog_gym.envs.robodog.mybot_v3_with_arm_config import config_mybot_v3_with_arm
     from robodog_gym.envs.robodog.velocity_tracking import VelocityTrackingEasyEnv
 
     from ml_logger import logger
@@ -32,6 +33,8 @@ def train_go1(headless=True, robot="go1_backpack"):
       config_mybot_v2_1(Cfg)
     elif robot == "mybot_v3":
       config_mybot_v3(Cfg)
+    elif robot == "mybot_v3_with_arm":
+      config_mybot_v3_with_arm(Cfg)
     else:
       raise ValueError(f"Unsupported robot: {robot}")
 

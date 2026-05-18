@@ -147,6 +147,8 @@ def load_env(label, iteration=-1, headless=False, robot="go1_backpack"):
         Cfg.asset.file = '{MINI_GYM_ROOT_DIR}/resources/robots/mybot_v2_1/urdf/mybot_v2_1.urdf'
     elif robot == "mybot_v3":
         Cfg.asset.file = '{MINI_GYM_ROOT_DIR}/resources/robots/mybot_v3/urdf/mybot_v3.urdf'
+    elif robot == "mybot_v3_with_arm":
+        Cfg.asset.file = '{MINI_GYM_ROOT_DIR}/resources/robots/mybot_v3_with_arm/urdf/mybot_v3_with_arm.urdf'
     else:
         raise ValueError(f"Unsupported robot: {robot}")
 
@@ -501,7 +503,7 @@ if __name__ == '__main__':
         "--robot",
         type=str,
         default="go1_backpack",
-        choices=["go1_backpack", "mybot_v2_1", "mybot_v3"],
+        choices=["go1_backpack", "mybot_v2_1", "mybot_v3", "mybot_v3_with_arm"],
         help="robot config to visualize",
     )
     parser.add_argument(
